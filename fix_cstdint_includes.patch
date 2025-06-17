@@ -1,0 +1,50 @@
+From 3f717ff85ae7984cb1c4e6e49e9e06c62915ee98 Mon Sep 17 00:00:00 2001
+From: Jonathan Kammerland <jkammerland@gmail.com>
+Date: Mon, 16 Jun 2025 19:16:11 +0200
+Subject: [PATCH] Fix all missing <cstdint> includes
+
+---
+ implementation/plugin/include/plugin_manager_impl.hpp | 1 +
+ interface/vsomeip/plugin.hpp                          | 1 +
+ interface/vsomeip/plugins/application_plugin.hpp      | 1 +
+ 3 files changed, 3 insertions(+)
+
+diff --git a/implementation/plugin/include/plugin_manager_impl.hpp b/implementation/plugin/include/plugin_manager_impl.hpp
+index 9f755d6..820849d 100644
+--- a/implementation/plugin/include/plugin_manager_impl.hpp
++++ b/implementation/plugin/include/plugin_manager_impl.hpp
+@@ -12,6 +12,7 @@
+ #include <chrono>
+ #include <mutex>
+ #include <set>
++#include <cstdint>
+ 
+ #include <vsomeip/constants.hpp>
+ #include <vsomeip/export.hpp>
+diff --git a/interface/vsomeip/plugin.hpp b/interface/vsomeip/plugin.hpp
+index 25ccbb2..927dbea 100644
+--- a/interface/vsomeip/plugin.hpp
++++ b/interface/vsomeip/plugin.hpp
+@@ -8,6 +8,7 @@
+ 
+ #include <memory>
+ #include <string>
++#include <cstdint>
+ 
+ #if _WIN32
+     #if VSOMEIP_DLL_COMPILATION_PLUGIN
+diff --git a/interface/vsomeip/plugins/application_plugin.hpp b/interface/vsomeip/plugins/application_plugin.hpp
+index a052aa2..f4d6014 100644
+--- a/interface/vsomeip/plugins/application_plugin.hpp
++++ b/interface/vsomeip/plugins/application_plugin.hpp
+@@ -10,6 +10,7 @@
+ #include <memory>
+ 
+ #include <vsomeip/export.hpp>
++#include <cstdint>
+ 
+ // Version should be incremented on breaking API change
+ #define VSOMEIP_APPLICATION_PLUGIN_VERSION              1
+-- 
+2.49.0
+

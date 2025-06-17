@@ -1,0 +1,24 @@
+From 89344e939248fb15bdaf009ad0ee1e9e6bc3581f Mon Sep 17 00:00:00 2001
+From: Jonathan Kammerland <jkammerland@gmail.com>
+Date: Mon, 16 Jun 2025 19:46:30 +0200
+Subject: [PATCH] Fix missing <string> include
+
+---
+ include/CommonAPI/Types.hpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/include/CommonAPI/Types.hpp b/include/CommonAPI/Types.hpp
+index a1dd83c..dcae7be 100644
+--- a/include/CommonAPI/Types.hpp
++++ b/include/CommonAPI/Types.hpp
+@@ -15,6 +15,7 @@
+ #include <unordered_set>
+ #include <memory>
+ #include <tuple>
++#include <string>
+ 
+ #ifndef _WIN32
+ #include <sys/types.h>
+-- 
+2.49.0
+
