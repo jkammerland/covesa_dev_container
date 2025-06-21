@@ -105,6 +105,23 @@ RUN \
    && ninja \
    && ninja install
 
+# Required for Java and Maven installation in the container with sdkman
+ENV JAVA_HOME="$SDKMAN_DIR/candidates/java/current"
+ENV MAVEN_HOME="$SDKMAN_DIR/candidates/maven/current"
+ENV PATH="$JAVA_HOME/bin:$MAVEN_HOME/bin:$PATH"
+
+RUN \
+  dnf install -y unzip zip && \
+  curl -s "https://get.sdkman.io" | bash && \
+  source "$HOME/.sdkman/bin/sdkman-init.sh" && \
+  sdk install java 8.0.442-tem && sdk install maven
+
+RUN git clone https://github.com/jkammerland/capicxx-core-tools.git && \
+ source "$HOME/.sdkman/bin/sdkman-init.sh" && \
+ cd capicxx-core-tools && \
+ mvn -f org.genivi.commonapi.core.releng/pom.xml -D target.id=org.genivi.commonapi.core.target
+ clean verify
+ 
 
 # Default command
 CMD ["/bin/bash"]
