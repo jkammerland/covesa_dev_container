@@ -24,6 +24,8 @@ RUN dnf install -y \
     patch \
     expat-devel \
     gawk \
+    unzip \
+    zip \
     && dnf clean all
 
 # Create a non-root user with sudo access
@@ -111,17 +113,37 @@ ENV MAVEN_HOME="$SDKMAN_DIR/candidates/maven/current"
 ENV PATH="$JAVA_HOME/bin:$MAVEN_HOME/bin:$PATH"
 
 RUN \
-  dnf install -y unzip zip && \
   curl -s "https://get.sdkman.io" | bash && \
   source "$HOME/.sdkman/bin/sdkman-init.sh" && \
   sdk install java 8.0.442-tem && sdk install maven
 
-RUN git clone https://github.com/jkammerland/capicxx-core-tools.git && \
+RUN git clone https://github.com/COVESA/capicxx-core-tools.git && \
+ cd capicxx-core-tools/org.genivi.commonapi.core.releng && \
+#  git checkout add-aarch64-support && \
  source "$HOME/.sdkman/bin/sdkman-init.sh" && \
- cd capicxx-core-tools && \
- mvn -f org.genivi.commonapi.core.releng/pom.xml -D target.id=org.genivi.commonapi.core.target
- clean verify
- 
+ mvn -Dtarget.id=org.genivi.commonapi.core.target clean verify
+
+RUN git clone https://github.com/COVESA/capicxx-someip-tools.git && \
+ cd capicxx-someip-tools/org.genivi.commonapi.someip.releng && \
+ source "$HOME/.sdkman/bin/sdkman-init.sh" && \
+ mvn -DCOREPATH=../../capicxx-core-tools -Dtarget.id=org.genivi.commonapi.someip.target clean verify
+
+RUN git clone https://github.com/COVESA/capicxx-dbus-tools.git && \
+ cd capicxx-dbus-tools/org.genivi.commonapi.dbus.releng && \
+ source "$HOME/.sdkman/bin/sdkman-init.sh" && \
+ mvn -DCOREPATH=../../capicxx-core-tools -Dtarget.id=org.genivi.commonapi.dbus.target clean verify
+
+RUN \
+    unzip capicxx-core-tools/org.genivi.commonapi.core.cli.product/target/products/commonapi_core_generator.zip \
+    -d /usr/local/bin && \
+    unzip -o capicxx-someip-tools/org.genivi.commonapi.someip.cli.product/target/products/commonapi_someip_generator.zip \
+    -d /usr/local/bin && \
+    unzip -o capicxx-dbus-tools/org.genivi.commonapi.dbus.cli.product/target/products/commonapi_dbus_generator.zip \
+    -d /usr/local/bin 
+
+# TODO: Move this before starting to install stuff
+# RUN chown -R devuser:devuser /home/devuser
+# USER devuser
 
 # Default command
 CMD ["/bin/bash"]
