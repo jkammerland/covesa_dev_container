@@ -1,7 +1,7 @@
 ARG BASE_STAGE
 
 # ============================================================================
-# Base stages for different distributions
+# Base stages for different distributions  
 # ============================================================================
 
 FROM fedora:42 AS fedora-base
@@ -88,17 +88,36 @@ RUN apk add --no-cache \
     zip \
     bash
 
+# Install Java and Maven via APK for Alpine
 RUN wget -O /etc/apk/keys/adoptium.rsa.pub https://packages.adoptium.net/artifactory/api/security/keypair/public/repositories/apk && \
     echo 'https://packages.adoptium.net/artifactory/apk/alpine/main' >> /etc/apk/repositories && \
     apk add --no-cache \
     temurin-8-jre \
-    temurin-8-jdk
+    temurin-8-jdk \
+    maven
+
+# Set Java environment for Alpine in bashrc
+RUN echo 'export JAVA_HOME="/usr/lib/jvm/temurin-8-jdk"' >> ~/.bashrc && \
+    echo 'export PATH="$JAVA_HOME/bin:$PATH"' >> ~/.bashrc
 
 # ============================================================================
 # Common build stage (distro-agnostic)
 # ============================================================================
 
 FROM ${BASE_STAGE} AS common-build
+
+# Install SDKMAN and Java/Maven for non-Alpine distros
+RUN if [ ! -f "/etc/alpine-release" ]; then \
+        bash -c "curl -s 'https://get.sdkman.io' | bash && \
+        source ~/.sdkman/bin/sdkman-init.sh && \
+        sdk install java 8.0.442-tem && \
+        sdk install maven && \
+        echo 'source ~/.sdkman/bin/sdkman-init.sh' >> ~/.bashrc" && \
+        echo 'export SDKMAN_DIR="/root/.sdkman"' >> ~/.bashrc && \
+        echo 'export JAVA_HOME="$SDKMAN_DIR/candidates/java/current"' >> ~/.bashrc && \
+        echo 'export MAVEN_HOME="$SDKMAN_DIR/candidates/maven/current"' >> ~/.bashrc && \
+        echo 'export PATH="$JAVA_HOME/bin:$MAVEN_HOME/bin:$PATH"' >> ~/.bashrc; \
+    fi
 
 # Create a non-root user with sudo access
 RUN useradd -m devuser 2>/dev/null || adduser -D devuser 2>/dev/null || true && \
@@ -165,31 +184,45 @@ RUN --mount=type=cache,target=/var/cache/builds \
       .. && \
     ninja && ninja install
 
-# Install SDKMAN and Java/Maven
-ENV JAVA_HOME="$SDKMAN_DIR/candidates/java/current"
-ENV MAVEN_HOME="$SDKMAN_DIR/candidates/maven/current"
-ENV PATH="$JAVA_HOME/bin:$MAVEN_HOME/bin:$PATH"
+# Build capicxx tools with conditional environment setup
+RUN if [ -f "/etc/alpine-release" ]; then \
+        # Alpine - Java/Maven already in PATH \
+        git clone https://github.com/COVESA/capicxx-core-tools.git && \
+        cd capicxx-core-tools/org.genivi.commonapi.core.releng && \
+        mvn -Dtarget.id=org.genivi.commonapi.core.target clean verify; \
+    else \
+        # Non-Alpine - source SDKMAN \
+        bash -c "source ~/.sdkman/bin/sdkman-init.sh && \
+        git clone https://github.com/COVESA/capicxx-core-tools.git && \
+        cd capicxx-core-tools/org.genivi.commonapi.core.releng && \
+        mvn -Dtarget.id=org.genivi.commonapi.core.target clean verify"; \
+    fi
 
-RUN bash -c "curl -s 'https://get.sdkman.io' | bash && \
-    source \$HOME/.sdkman/bin/sdkman-init.sh && \
-    sdk install java 8.0.442-tem && \
-    sdk install maven"
+RUN if [ -f "/etc/alpine-release" ]; then \
+        # Alpine - Java/Maven already in PATH \
+        git clone https://github.com/COVESA/capicxx-someip-tools.git && \
+        cd capicxx-someip-tools/org.genivi.commonapi.someip.releng && \
+        mvn -DCOREPATH=../../capicxx-core-tools -Dtarget.id=org.genivi.commonapi.someip.target clean verify; \
+    else \
+        # Non-Alpine - source SDKMAN \
+        bash -c "source ~/.sdkman/bin/sdkman-init.sh && \
+        git clone https://github.com/COVESA/capicxx-someip-tools.git && \
+        cd capicxx-someip-tools/org.genivi.commonapi.someip.releng && \
+        mvn -DCOREPATH=../../capicxx-core-tools -Dtarget.id=org.genivi.commonapi.someip.target clean verify"; \
+    fi
 
-# Build capicxx tools
-RUN bash -c "git clone https://github.com/COVESA/capicxx-core-tools.git && \
-    cd capicxx-core-tools/org.genivi.commonapi.core.releng && \
-    source "$HOME/.sdkman/bin/sdkman-init.sh" && \
-    mvn -Dtarget.id=org.genivi.commonapi.core.target clean verify"
-
-RUN bash -c "git clone https://github.com/COVESA/capicxx-someip-tools.git && \
-    cd capicxx-someip-tools/org.genivi.commonapi.someip.releng && \
-    source "$HOME/.sdkman/bin/sdkman-init.sh" && \
-    mvn -DCOREPATH=../../capicxx-core-tools -Dtarget.id=org.genivi.commonapi.someip.target clean verify"
-
-RUN bash -c "git clone https://github.com/COVESA/capicxx-dbus-tools.git && \
-    cd capicxx-dbus-tools/org.genivi.commonapi.dbus.releng && \
-    source "$HOME/.sdkman/bin/sdkman-init.sh" && \
-    mvn -DCOREPATH=../../capicxx-core-tools -Dtarget.id=org.genivi.commonapi.dbus.target clean verify"
+RUN if [ -f "/etc/alpine-release" ]; then \
+        # Alpine - Java/Maven already in PATH \
+        git clone https://github.com/COVESA/capicxx-dbus-tools.git && \
+        cd capicxx-dbus-tools/org.genivi.commonapi.dbus.releng && \
+        mvn -DCOREPATH=../../capicxx-core-tools -Dtarget.id=org.genivi.commonapi.dbus.target clean verify; \
+    else \
+        # Non-Alpine - source SDKMAN \
+        bash -c "source ~/.sdkman/bin/sdkman-init.sh && \
+        git clone https://github.com/COVESA/capicxx-dbus-tools.git && \
+        cd capicxx-dbus-tools/org.genivi.commonapi.dbus.releng && \
+        mvn -DCOREPATH=../../capicxx-core-tools -Dtarget.id=org.genivi.commonapi.dbus.target clean verify"; \
+    fi
 
 # Install generators
 RUN unzip capicxx-core-tools/org.genivi.commonapi.core.cli.product/target/products/commonapi_core_generator.zip \
